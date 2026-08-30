@@ -1,0 +1,1324 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Julia的思考藍圖 | 個人高效工作台</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            planner: {
+              bg: '#F7F4EB',
+              card: '#FFFFFF',
+              cardBorder: '#E5DFD3',
+              textMain: '#2D2B2A',
+              textMuted: '#78716C',
+              accent: '#D97706',
+              terracotta: '#C2410C',
+              sage: '#65A30D',
+              softYellow: '#FEF3C7',
+              headerTab: '#EFECE3'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  
+  <!-- React & Babel CDNs -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  
+  <!-- Custom CSS & Keyframe Animations -->
+  <style>
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #F7F4EB; }
+    ::-webkit-scrollbar-thumb { background: #D6CEBE; border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb:hover { background: #B8AF9C; }
+    @keyframes wave { 0%, 100% { height: 6px; } 50% { height: 26px; } }
+    .wave-bar { animation: wave 1.2s ease-in-out infinite; }
+    .wave-bar:nth-child(2) { animation-delay: 0.15s; }
+    .wave-bar:nth-child(3) { animation-delay: 0.3s; }
+    .wave-bar:nth-child(4) { animation-delay: 0.45s; }
+    .wave-bar:nth-child(5) { animation-delay: 0.6s; }
+  </style>
+</head>
+<body class="bg-planner-bg text-planner-textMain min-h-screen font-sans antialiased selection:bg-amber-200 selection:text-amber-900">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef, useMemo } = React;
+
+    const Icon = ({ name, className = "w-5 h-5", ...props }) => {
+      const icons = {
+        mic: <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z M19 10v2a7 7 0 0 1-14 0v-2 M12 19v4 M8 23h8" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>,
+        square: <rect x="3" y="3" width="18" height="18" rx="2" ry="2" fill="none" stroke="currentColor" strokeWidth="2"/>,
+        settings: <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>,
+        calendar: <path d="M8 2v4 M16 2v4 M3 10h18 M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>,
+        checkSquare: <path d="m9 11 3 3L22 4 M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>,
+        fileText: <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z M14 2v6h6 M16 13H8 M16 17H8 M10 9H8" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>,
+        sparkles: <path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3z M5 3l.8 1.8A1 1 0 0 0 6.4 5.4L8 6l-1.8.8a1 1 0 0 0-.6.6L5 9l-.8-1.8a1 1 0 0 0-.6-.6L2 6l1.8-.8a1 1 0 0 0 .6-.6L5 3z" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>,
+        messageSquare: <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>,
+        scale: <path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z M2 16l3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z M7 21h10 M12 3v18 M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>,
+        fileSpreadsheet: <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7L15 2z M14 2v5h5 M8 13h8 M8 17h8 M10 9h4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>,
+        kanban: <path d="M6 5v11 M12 5v6 M18 5v14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>,
+        download: <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4 M7 10l5 5 5-5 M12 15V3" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>,
+        copy: <path d="M8 4v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7.242a2 2 0 0 0-.602-1.43L16.083 2.57A2 2 0 0 0 14.685 2H10a2 2 0 0 0-2 2z M16 18v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h2" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>,
+        trash: <path d="M3 6h18 M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6 M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2 M10 11v6 M14 11v6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>,
+        plus: <path d="M5 12h14 M12 5v14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>,
+        chevronLeft: <path d="m15 18-6-6 6-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>,
+        chevronRight: <path d="m9 18 6-6-6-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>,
+        externalLink: <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6 M15 3h6v6 M10 14L21 3" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>,
+        check: <path d="M20 6 9 17l-5-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>,
+        clock: <g><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" strokeWidth="2"/><path d="M12 6v6l4 2" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></g>
+      };
+      return (
+        <svg viewBox="0 0 24 24" className={className} {...props}>
+          {icons[name] || icons.sparkles}
+        </svg>
+      );
+    };
+
+    const copyToClipboard = (text, onComplete) => {
+      const textarea = document.createElement("textarea");
+      textarea.value = text;
+      textarea.style.position = "fixed";
+      textarea.style.left = "-9999px";
+      document.body.appendChild(textarea);
+      textarea.focus();
+      textarea.select();
+      try {
+        document.execCommand('copy');
+        if (onComplete) onComplete(true);
+      } catch (err) {
+        console.error("Copy failed", err);
+        if (onComplete) onComplete(false);
+      }
+      document.body.removeChild(textarea);
+    };
+
+    const blobToBase64 = (blob) => {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const base64String = reader.result.split(',')[1];
+          resolve(base64String);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    };
+
+    function App() {
+      const [toast, setToast] = useState(null);
+      const showToast = (message, type = 'info') => {
+        setToast({ message, type });
+        setTimeout(() => setToast(null), 3500);
+      };
+
+      const [apiKey, setApiKey] = useState(() => localStorage.getItem('julia_gemini_key') || '');
+      const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+      const saveApiKey = (val) => {
+        setApiKey(val);
+        localStorage.setItem('julia_gemini_key', val);
+        showToast('Gemini API Key 已安全儲存！', 'success');
+        setIsSettingsOpen(false);
+      };
+
+      // Audio Recorder State
+      const [isRecording, setIsRecording] = useState(false);
+      const [recordDuration, setRecordDuration] = useState(0);
+      const [audioUrl, setAudioUrl] = useState(null);
+      const [audioBlob, setAudioBlob] = useState(null);
+      const [isTranscribing, setIsTranscribing] = useState(false);
+      const mediaRecorderRef = useRef(null);
+      const timerRef = useRef(null);
+      const audioChunksRef = useRef([]);
+
+      // Calendar State
+      const [currentDate, setCurrentDate] = useState(new Date());
+      const [selectedDateStr, setSelectedDateStr] = useState(() => new Date().toISOString().split('T')[0]);
+      const [events, setEvents] = useState(() => {
+        const saved = localStorage.getItem('julia_events');
+        return saved ? JSON.parse(saved) : [
+          { id: 'e1', date: new Date().toISOString().split('T')[0], title: 'TFDA 檢驗案件審查與報告核發', time: '10:00', category: 'work' },
+          { id: 'e2', date: new Date().toISOString().split('T')[0], title: '與誠品選品討論化粧品 PIF 補件', time: '14:30', category: 'work' }
+        ];
+      });
+      const [newEventTitle, setNewEventTitle] = useState('');
+      const [newEventTime, setNewEventTime] = useState('09:00');
+
+      // Todos State
+      const [todos, setTodos] = useState(() => {
+        const saved = localStorage.getItem('julia_todos');
+        return saved ? JSON.parse(saved) : [
+          { id: 't1', title: '核對最新食品重金屬定量分析未稅報價與樣品量', category: 'work', priority: 'high', completed: false, date: new Date().toISOString().split('T')[0] },
+          { id: 't2', title: '確認日本/歐洲考察門票與景點行程時間配置', category: 'personal', priority: 'medium', completed: false, date: new Date().toISOString().split('T')[0] },
+          { id: 't3', title: '回覆 VIP 客戶 LINE 訊息（帶白話法規說明）', category: 'work', priority: 'high', completed: true, date: new Date().toISOString().split('T')[0] }
+        ];
+      });
+      const [filterTab, setFilterTab] = useState('all');
+      const [newTodoText, setNewTodoText] = useState('');
+      const [newTodoCategory, setNewTodoCategory] = useState('work');
+      const [newTodoPriority, setNewTodoPriority] = useState('medium');
+
+      // Notes State
+      const [notes, setNotes] = useState(() => {
+        const saved = localStorage.getItem('julia_notes');
+        return saved ? JSON.parse(saved) : [
+          {
+            id: 'note-1',
+            title: '📖 Julia 的高效溝通與商務法則',
+            content: `# Julia 的思考藍圖\n\n- **溝通態度**：成熟、俐落、具同理心，站在「協助客戶解決問題與保障權益」的視角。\n- **去客套與禁詞**：完全去除多餘套句，【嚴格禁止使用「麻煩」二字】。\n- **報價規範**：參照 Google Drive 官方檢驗價目表。\n- **Obsidian 串接**：點擊右上角「匯出 .md」即可直接備份至個人筆記庫。`,
+            updatedAt: new Date().toISOString()
+          }
+        ];
+      });
+      const [activeNoteId, setActiveNoteId] = useState(notes[0]?.id || null);
+      const [noteMode, setNoteMode] = useState('split');
+
+      // Business Suite Tabs
+      const [activeBizTab, setActiveBizTab] = useState('lineDraft');
+      const [clientInquiry, setClientInquiry] = useState('');
+      const [generatedDraft, setGeneratedDraft] = useState('');
+      const [isDrafting, setIsDrafting] = useState(false);
+
+      // Dynamic quotation calculator slots
+      const [querySlots, setQuerySlots] = useState([
+        { id: 1, name: '農藥殘留 410 項多重殘留分析', priceExTax: 8200, leadTimeDays: 5, sampleQtyText: '300g (乾燥固態)' },
+        { id: 2, name: 'ORAC 抗氧化能力檢測 (新增)', priceExTax: 6800, leadTimeDays: 7, sampleQtyText: '100g' },
+        { id: 3, name: '重金屬 4 項定量分析', priceExTax: 4500, leadTimeDays: 7, sampleQtyText: '100g' },
+        { id: 4, name: '', priceExTax: 0, leadTimeDays: 0, sampleQtyText: '' },
+        { id: 5, name: '', priceExTax: 0, leadTimeDays: 0, sampleQtyText: '' }
+      ]);
+
+      // CRM Kanban Cases
+      const [crmCases, setCrmCases] = useState(() => {
+        const saved = localStorage.getItem('julia_crm_cases');
+        return saved ? JSON.parse(saved) : [
+          { id: 'case-1', clientName: '林董事長', company: '鼎峰科技', status: 'pending_sample', followDate: new Date().toISOString().split('T')[0], notes: '農藥殘留 410 項待補樣 150g，已傳送白話補充說明。' },
+          { id: 'case-2', clientName: '張特助', company: '誠品生活選品', status: 'testing_in_lab', followDate: '2026-09-03', notes: '化粧品 PIF 安全評估實驗室檢測中，預計 9/5 出具初稿。' },
+          { id: 'case-3', clientName: '高經理', company: '晨曦國際創投', status: 'reviewing_report', followDate: '2026-09-01', notes: '重金屬 4 項與微生物報告核對中，待客戶確認開立發票。' },
+          { id: 'case-4', clientName: '王副總', company: '綠原生鮮研發', status: 'closed', followDate: '2026-08-20', notes: '已結案並寄送正式紙本蓋章檢驗報告。' }
+        ];
+      });
+      const [showAddClientModal, setShowAddClientModal] = useState(false);
+      const [newCase, setNewCase] = useState({ clientName: '', company: '', status: 'pending_sample', followDate: '', notes: '' });
+
+      useEffect(() => { localStorage.setItem('julia_events', JSON.stringify(events)); }, [events]);
+      useEffect(() => { localStorage.setItem('julia_todos', JSON.stringify(todos)); }, [todos]);
+      useEffect(() => { localStorage.setItem('julia_notes', JSON.stringify(notes)); }, [notes]);
+      useEffect(() => { localStorage.setItem('julia_crm_cases', JSON.stringify(crmCases)); }, [crmCases]);
+
+      const startRecording = async () => {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          mediaRecorderRef.current = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+          audioChunksRef.current = [];
+
+          mediaRecorderRef.current.ondataavailable = (e) => {
+            if (e.data.size > 0) audioChunksRef.current.push(e.data);
+          };
+
+          mediaRecorderRef.current.onstop = () => {
+            const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+            setAudioBlob(blob);
+            setAudioUrl(URL.createObjectURL(blob));
+            stream.getTracks().forEach(track => track.stop());
+            showToast('錄音已完成！點擊即可發送 Gemini API 進行真實轉譯。', 'success');
+          };
+
+          mediaRecorderRef.current.start();
+          setIsRecording(true);
+          setRecordDuration(0);
+          timerRef.current = setInterval(() => setRecordDuration(prev => prev + 1), 1000);
+        } catch (err) {
+          showToast('無法取得麥克風錄音權限。', 'error');
+        }
+      };
+
+      const stopRecording = () => {
+        if (mediaRecorderRef.current && isRecording) {
+          mediaRecorderRef.current.stop();
+          clearInterval(timerRef.current);
+          setIsRecording(false);
+        }
+      };
+
+      const handleGeminiAudioTranscribe = async () => {
+        if (!apiKey) {
+          showToast('請點擊右上角「⚙️ API 設定」輸入您的 Gemini API Key！', 'error');
+          setIsSettingsOpen(true);
+          return;
+        }
+        if (!audioBlob) {
+          showToast('請先完成錄音再執行轉譯！', 'info');
+          return;
+        }
+
+        setIsTranscribing(true);
+
+        try {
+          const base64Audio = await blobToBase64(audioBlob);
+          const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+
+          const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{
+                parts: [
+                  {
+                    inline_data: {
+                      mime_type: 'audio/webm',
+                      data: base64Audio
+                    }
+                  },
+                  { text: '請將這段語音精準轉譯為繁體中文逐字稿，並條列出：1. 核心重點 2. 待辦事項 (Markdown 格式)。' }
+                ]
+              }]
+            })
+          });
+
+          if (!response.ok) {
+            const errJson = await response.json().catch(() => ({}));
+            throw new Error(errJson.error?.message || `HTTP 錯誤碼 ${response.status}`);
+          }
+
+          const result = await response.json();
+          const transcribedText = result.candidates?.[0]?.content?.parts?.[0]?.text;
+
+          if (!transcribedText) throw new Error('模型傳回空白回應。');
+
+          const timestamp = `${new Date().toLocaleDateString('zh-TW')} ${new Date().toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' })}`;
+          const newNote = {
+            id: `note-${Date.now()}`,
+            title: `🎙️ 語音辨識與重點摘要 (${timestamp})`,
+            content: transcribedText,
+            updatedAt: new Date().toISOString()
+          };
+
+          setNotes(prev => [newNote, ...prev]);
+          setActiveNoteId(newNote.id);
+          showToast('✨ 語音真實轉譯成功！已覆蓋呈現於 Quick Notes。', 'success');
+
+        } catch (err) {
+          console.error("Transcribe Error:", err);
+          showToast(`轉譯失敗：${err.message}`, 'error');
+        } finally {
+          setIsTranscribing(false);
+        }
+      };
+
+      const calendarData = useMemo(() => {
+        const year = currentDate.getFullYear();
+        const month = currentDate.getMonth();
+        const firstDay = new Date(year, month, 1).getDay();
+        const totalDays = new Date(year, month + 1, 0).getDate();
+        const days = [];
+        for (let i = 0; i < firstDay; i++) days.push({ day: null, dateStr: '' });
+        for (let d = 1; d <= totalDays; d++) {
+          const mStr = String(month + 1).padStart(2, '0');
+          const dStr = String(d).padStart(2, '0');
+          days.push({ day: d, dateStr: `${year}-${mStr}-${dStr}` });
+        }
+        return days;
+      }, [currentDate]);
+
+      const selectedDateEvents = useMemo(() => {
+        return events.filter(e => e.date === selectedDateStr);
+      }, [events, selectedDateStr]);
+
+      const handleAddEvent = (e) => {
+        e.preventDefault();
+        if (!newEventTitle.trim()) return;
+        const item = {
+          id: `evt-${Date.now()}`,
+          date: selectedDateStr,
+          title: newEventTitle.trim(),
+          time: newEventTime || '09:00',
+          category: 'work'
+        };
+        setEvents(prev => [...prev, item]);
+        setNewEventTitle('');
+        showToast(`已新增行程至 ${selectedDateStr}！`, 'success');
+      };
+
+      const handleDeleteEvent = (id) => {
+        setEvents(prev => prev.filter(e => e.id !== id));
+        showToast('行程已刪除。', 'info');
+      };
+
+      const handleAddTodo = (e) => {
+        e.preventDefault();
+        if (!newTodoText.trim()) return;
+        setTodos(prev => [{
+          id: `t-${Date.now()}`,
+          title: newTodoText.trim(),
+          category: newTodoCategory,
+          priority: newTodoPriority,
+          completed: false,
+          date: selectedDateStr
+        }, ...prev]);
+        setNewTodoText('');
+        showToast('已新增待辦事項！', 'success');
+      };
+
+      const toggleTodo = (id) => setTodos(prev => prev.map(t => t.id === id ? { ...t, completed: !t.completed } : t));
+      const deleteTodo = (id) => setTodos(prev => prev.filter(t => t.id !== id));
+
+      const filteredTodos = useMemo(() => {
+        return todos.filter(t => {
+          if (filterTab === 'work') return t.category === 'work';
+          if (filterTab === 'personal') return t.category === 'personal';
+          return true;
+        });
+      }, [todos, filterTab]);
+
+      const activeNote = useMemo(() => notes.find(n => n.id === activeNoteId) || notes[0] || null, [notes, activeNoteId]);
+      const updateActiveNoteContent = (content) => setNotes(prev => prev.map(n => n.id === activeNoteId ? { ...n, content, updatedAt: new Date().toISOString() } : n));
+      const updateActiveNoteTitle = (title) => setNotes(prev => prev.map(n => n.id === activeNoteId ? { ...n, title, updatedAt: new Date().toISOString() } : n));
+
+      const handleCreateNewNote = () => {
+        const newNote = { id: `note-${Date.now()}`, title: '未命名手帳思考筆記', content: `# 新思考筆記\n\n- 點擊此處撰寫 Markdown...`, updatedAt: new Date().toISOString() };
+        setNotes(prev => [newNote, ...prev]);
+        setActiveNoteId(newNote.id);
+        showToast('已建立新筆記！', 'success');
+      };
+
+      const exportMarkdownFile = () => {
+        if (!activeNote) return;
+        const blob = new Blob([activeNote.content], { type: 'text/markdown;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        const sanitizedTitle = activeNote.title.replace(/[\\/:*?"<>|]/g, '_');
+        link.href = url;
+        link.download = `${sanitizedTitle || 'Note'}.md`;
+        link.click();
+        URL.revokeObjectURL(url);
+        showToast(`已匯出 "${sanitizedTitle}.md"！`, 'success');
+      };
+
+      const handleGenerateLineReply = async () => {
+        if (!clientInquiry.trim()) {
+          showToast('請先貼上客戶對話或需求！', 'info');
+          return;
+        }
+
+        setIsDrafting(true);
+
+        const promptSystem = `角色定位：
+你是一名專業的 '檢測業務 AI 顧問'，專精於食品、化妝品、中藥、西藥及其相關檢測業務。你的目標不只是潤飾文字，而是具備判斷力、風險意識與專業知識的夥伴，協助使用者處理日常客戶溝通、法規判定（TFDA）、技術說明及商務協調。
+
+工作原則與行為準則：
+1. 案件分析優先：理解客戶的核心疑慮與風險。
+2. 客戶溝通風格：懂法規的業務顧問，語氣專業、清楚、自然。禁語：嚴格禁止使用 '麻煩' 二字。
+3. 結構：務必先回答問題，再補充原因與法規依據。
+
+輸出格式要求：
+- 【我的判斷】：修正建議與原因。
+- 【客戶回覆】：提供可以直接傳送給客戶的專業版本。
+- 【依據】：法規/技術來源。
+- 【需要確認】：缺失的關鍵資訊。`;
+
+        try {
+          if (apiKey) {
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+            const response = await fetch(apiUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                contents: [{ parts: [{ text: `${promptSystem}\n\n客戶諮詢需求：\n${clientInquiry}` }] }]
+              })
+            });
+            const data = await response.json();
+            const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "擬稿失敗。";
+            setGeneratedDraft(text);
+          } else {
+            setTimeout(() => {
+              const ruleBasedResponse = `【我的判斷】：
+客戶希望預先出具報告初稿再補送樣品，此舉存在實驗室數據風險。建議提供優先排測與急件排程方案。
+
+【客戶回覆】：
+陳總您好，關於您詢問的報告出具時程，為確保檢驗數據符合 TFDA 規範，正式報告需待實驗室數據完成後核發。為加速進度，我們可先為您預約優先收樣與排測。
+
+【依據】：
+衛福部 TFDA 檢驗機構認證規範。
+
+【需要確認】：
+請確認補送樣品的抵達日期，以便保留機台。`;
+              setGeneratedDraft(ruleBasedResponse);
+            }, 600);
+          }
+          showToast('LINE 專業顧問草稿已生成！', 'success');
+        } catch (err) {
+          showToast('連線失敗。', 'error');
+        } finally {
+          setIsDrafting(false);
+        }
+      };
+
+      const dynamicQuotationSummary = useMemo(() => {
+        const activeSlots = querySlots.filter(s => s.name.trim() !== '' && s.priceExTax > 0);
+        const subtotalExTax = activeSlots.reduce((sum, s) => sum + s.priceExTax, 0);
+        const totalIncTax = Math.round(subtotalExTax * 1.05);
+        const maxLeadTime = activeSlots.reduce((max, s) => Math.max(max, s.leadTimeDays), 0);
+        return { activeSlots, subtotalExTax, totalIncTax, maxLeadTime };
+      }, [querySlots]);
+
+      const handleSlotChange = (index, field, value) => {
+        setQuerySlots(prev => {
+          const updated = [...prev];
+          updated[index] = { ...updated[index], [field]: value };
+          return updated;
+        });
+      };
+
+      const handleAddCase = (e) => {
+        e.preventDefault();
+        if (!newCase.clientName.trim()) return;
+        const item = {
+          id: `case-${Date.now()}`,
+          clientName: newCase.clientName,
+          company: newCase.company || '未填寫',
+          status: newCase.status || 'pending_sample',
+          followDate: newCase.followDate || new Date().toISOString().split('T')[0],
+          notes: newCase.notes || ''
+        };
+        setCrmCases(prev => [item, ...prev]);
+        setNewCase({ clientName: '', company: '', status: 'pending_sample', followDate: '', notes: '' });
+        setShowAddClientModal(false);
+        showToast('已新增檢驗案件至 CRM 看板！', 'success');
+      };
+
+      const moveCaseStatus = (id, newStatus) => {
+        setCrmCases(prev => prev.map(c => c.id === id ? { ...c, status: newStatus } : c));
+        showToast('案件狀態已更新！', 'info');
+      };
+
+      const deleteClosedCase = (id) => {
+        setCrmCases(prev => prev.filter(c => c.id !== id));
+        showToast('已刪除結案紀錄。', 'info');
+      };
+
+      const formatSeconds = (sec) => {
+        const m = Math.floor(sec / 60).toString().padStart(2, '0');
+        const s = (sec % 60).toString().padStart(2, '0');
+        return `${m}:${s}`;
+      };
+
+      return (
+        <div className="min-h-screen flex flex-col bg-planner-bg text-planner-textMain selection:bg-amber-200">
+          
+          {/* Toast Notification */}
+          {toast && (
+            <div className={`fixed top-4 right-4 z-50 flex items-center gap-2 px-4 py-3 rounded-2xl border shadow-xl text-xs font-semibold transition-all transform animate-bounce duration-300 ${
+              toast.type === 'success' ? 'bg-emerald-50 text-emerald-900 border-emerald-300' :
+              toast.type === 'error' ? 'bg-rose-50 text-rose-900 border-rose-300' :
+              'bg-amber-50 text-amber-900 border-amber-300'
+            }`}>
+              <Icon name="sparkles" className="w-4 h-4 text-amber-600" />
+              <span>{toast.message}</span>
+            </div>
+          )}
+
+          {/* Header */}
+          <header className="sticky top-0 z-40 bg-planner-card/90 backdrop-blur-md border-b border-planner-cardBorder px-4 lg:px-8 py-3.5 flex items-center justify-between shadow-sm">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-500 to-amber-300 flex items-center justify-center text-slate-900 font-black text-lg shadow-sm">
+                J
+              </div>
+              <div>
+                <h1 className="text-lg lg:text-xl font-bold tracking-tight text-planner-textMain flex items-center gap-2">
+                  Julia的思考藍圖
+                  <span className="hidden sm:inline-block text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-planner-softYellow text-amber-900 border border-amber-200">
+                    食品/化粧品檢驗專業手帳
+                  </span>
+                </h1>
+                <p className="text-xs text-planner-textMuted hidden sm:block">成熟俐落 ‧ 同理視角 ‧ 高效商務工作台</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 sm:gap-3">
+              {!isRecording ? (
+                <button
+                  onClick={startRecording}
+                  className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-medium text-xs sm:text-sm shadow-sm transition-all active:scale-95"
+                >
+                  <Icon name="mic" className="w-4 h-4 text-amber-100" />
+                  <span className="hidden xs:inline">快速錄音</span>
+                </button>
+              ) : (
+                <button
+                  onClick={stopRecording}
+                  className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-medium text-xs sm:text-sm shadow-md animate-pulse active:scale-95"
+                >
+                  <Icon name="square" className="w-4 h-4 fill-current" />
+                  <span>停止 ({formatSeconds(recordDuration)})</span>
+                </button>
+              )}
+
+              <button
+                onClick={() => setIsSettingsOpen(true)}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-planner-bg hover:bg-amber-100 text-planner-textMain border border-planner-cardBorder text-xs sm:text-sm font-medium transition-all"
+                title="API 設定"
+              >
+                <Icon name="settings" className="w-4 h-4 text-planner-accent" />
+                <span className="hidden md:inline">API 設定</span>
+                {apiKey && <span className="w-2 h-2 rounded-full bg-emerald-500"></span>}
+              </button>
+            </div>
+          </header>
+
+          {/* Main Layout */}
+          <main className="flex-1 p-3 sm:p-5 lg:p-6 max-w-[1780px] w-full mx-auto">
+            
+            {/* 語音轉譯 Banner */}
+            {(isRecording || audioUrl) && (
+              <div className="mb-6 p-4 rounded-2xl bg-planner-card border border-amber-300 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
+                <div className="flex items-center gap-4 w-full md:w-auto">
+                  <div className="w-11 h-11 rounded-2xl bg-amber-100 border border-amber-300 flex items-center justify-center text-amber-800 shrink-0">
+                    <Icon name="mic" className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-bold text-sm text-planner-textMain">
+                        {isRecording ? '🎙️ 正在錄音中...' : '✅ 音訊已就緒，可發送 Gemini API'}
+                      </h3>
+                      <span className="px-2 py-0.5 rounded text-xs font-mono bg-amber-100 text-amber-900 border border-amber-300">
+                        {formatSeconds(recordDuration)}
+                      </span>
+                    </div>
+                    {isRecording ? (
+                      <div className="flex items-center gap-1 mt-1.5 h-5">
+                        <div className="w-1.5 bg-amber-500 rounded-full wave-bar"></div>
+                        <div className="w-1.5 bg-amber-600 rounded-full wave-bar"></div>
+                        <div className="w-1.5 bg-amber-400 rounded-full wave-bar"></div>
+                        <div className="w-1.5 bg-amber-500 rounded-full wave-bar"></div>
+                        <span className="text-xs text-planner-textMuted ml-2">錄音進行中...</span>
+                      </div>
+                    ) : (
+                      <audio controls src={audioUrl} className="mt-1 h-8 max-w-[280px]" />
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 w-full md:w-auto justify-end">
+                  {!isRecording && (
+                    <button
+                      onClick={handleGeminiAudioTranscribe}
+                      disabled={isTranscribing}
+                      className="w-full md:w-auto flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs sm:text-sm shadow-md transition-all active:scale-95 disabled:opacity-50"
+                    >
+                      <Icon name="sparkles" className={`w-4 h-4 ${isTranscribing ? 'animate-spin' : ''}`} />
+                      <span>{isTranscribing ? '✨ AI 分析語音中...' : '✨ 發送 Gemini 2.5 語音轉譯'}</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* 三欄式主架構 Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 lg:gap-6">
+              
+              {/* COLUMN 1: 月計劃與待辦 */}
+              <div className="flex flex-col gap-5">
+                
+                {/* 行事曆 */}
+                <div className="bg-planner-card rounded-2xl border border-planner-cardBorder p-4 sm:p-5 shadow-sm">
+                  <div className="flex items-center justify-between mb-3.5">
+                    <div className="flex items-center gap-2.5">
+                      <div className="p-2 rounded-xl bg-amber-100 text-amber-800 border border-amber-200">
+                        <Icon name="calendar" className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <h2 className="font-bold text-sm text-planner-textMain">手帳月計劃欄</h2>
+                        <p className="text-[11px] text-planner-textMuted">
+                          {currentDate.toLocaleDateString('zh-TW', { year: 'numeric', month: 'long' })}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-1 bg-planner-bg p-1 rounded-xl border border-planner-cardBorder">
+                      <button onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))} className="p-1 hover:bg-amber-100 rounded-lg text-planner-textMain">
+                        <Icon name="chevronLeft" className="w-4 h-4" />
+                      </button>
+                      <button onClick={() => setCurrentDate(new Date())} className="px-2 text-[11px] font-bold text-amber-800">今日</button>
+                      <button onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1))} className="p-1 hover:bg-amber-100 rounded-lg text-planner-textMain">
+                        <Icon name="chevronRight" className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-7 gap-1 text-center text-xs mb-1">
+                    {['日', '一', '二', '三', '四', '五', '六'].map((day, i) => (
+                      <div key={day} className={`font-bold py-1 ${i === 0 || i === 6 ? 'text-planner-terracotta' : 'text-planner-textMuted'}`}>
+                        {day}
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="grid grid-cols-7 gap-1 text-xs mb-3">
+                    {calendarData.map((item, idx) => {
+                      if (!item.day) return <div key={`empty-${idx}`} className="h-8 rounded-lg bg-planner-bg/40"></div>;
+                      const isSelected = item.dateStr === selectedDateStr;
+                      const isToday = item.dateStr === new Date().toISOString().split('T')[0];
+                      const hasEvents = events.some(e => e.date === item.dateStr);
+
+                      return (
+                        <button
+                          key={item.dateStr}
+                          onClick={() => setSelectedDateStr(item.dateStr)}
+                          className={`h-8 rounded-xl flex flex-col items-center justify-center relative transition-all ${
+                            isSelected ? 'bg-amber-500 text-white font-bold shadow-sm' :
+                            isToday ? 'bg-amber-100 text-amber-900 border border-amber-300 font-bold' :
+                            'hover:bg-amber-50 text-planner-textMain'
+                          }`}
+                        >
+                          <span>{item.day}</span>
+                          {hasEvents && !isSelected && <span className="w-1.5 h-1.5 rounded-full bg-amber-500 absolute bottom-1"></span>}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <div className="pt-3 border-t border-planner-cardBorder flex flex-col gap-2">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-bold text-planner-textMain flex items-center gap-1">
+                        <Icon name="clock" className="w-3.5 h-3.5 text-amber-700" />
+                        【{selectedDateStr} 當日行程】
+                      </span>
+                      <span className="text-[10px] text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full font-bold">
+                        {selectedDateEvents.length} 項排程
+                      </span>
+                    </div>
+
+                    <div className="space-y-1.5 max-h-[120px] overflow-y-auto pr-1">
+                      {selectedDateEvents.length === 0 ? (
+                        <div className="text-[11px] text-planner-textMuted py-2 text-center bg-planner-bg/50 rounded-lg">
+                          當日尚無排定行程，點選下方新增。
+                        </div>
+                      ) : (
+                        selectedDateEvents.map(evt => (
+                          <div key={evt.id} className="flex items-center justify-between bg-planner-bg p-2 rounded-xl text-xs border border-planner-cardBorder">
+                            <div className="flex items-center gap-2 truncate">
+                              <span className="font-mono text-amber-900 font-bold shrink-0">{evt.time}</span>
+                              <span className="truncate text-planner-textMain font-medium">{evt.title}</span>
+                            </div>
+                            <button onClick={() => handleDeleteEvent(evt.id)} className="text-planner-textMuted hover:text-rose-600 p-1 shrink-0">
+                              <Icon name="trash" className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        ))
+                      )}
+                    </div>
+
+                    <form onSubmit={handleAddEvent} className="flex gap-1.5 mt-1">
+                      <input type="time" value={newEventTime} onChange={(e) => setNewEventTime(e.target.value)} className="bg-planner-bg border border-planner-cardBorder rounded-xl px-2 py-1 text-xs text-planner-textMain focus:outline-none" />
+                      <input type="text" placeholder="新增當日行程..." value={newEventTitle} onChange={(e) => setNewEventTitle(e.target.value)} className="flex-1 bg-planner-bg border border-planner-cardBorder rounded-xl px-2.5 py-1 text-xs text-planner-textMain focus:outline-none" />
+                      <button type="submit" className="p-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold shrink-0">
+                        <Icon name="plus" className="w-4 h-4" />
+                      </button>
+                    </form>
+                  </div>
+                </div>
+
+                {/* To-dos */}
+                <div className="bg-planner-card rounded-2xl border border-planner-cardBorder p-4 sm:p-5 shadow-sm flex-1 flex flex-col">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <div className="p-2 rounded-xl bg-amber-100 text-amber-800 border border-amber-200">
+                        <Icon name="checkSquare" className="w-4 h-4" />
+                      </div>
+                      <h2 className="font-bold text-sm text-planner-textMain">待辦事項清單</h2>
+                    </div>
+
+                    <div className="flex items-center bg-planner-bg p-0.5 rounded-xl border border-planner-cardBorder text-xs">
+                      {[
+                        { id: 'all', label: '📋 全部' },
+                        { id: 'work', label: '💼 工作' },
+                        { id: 'personal', label: '🌿 個人' }
+                      ].map((tab) => (
+                        <button
+                          key={tab.id}
+                          onClick={() => setFilterTab(tab.id)}
+                          className={`px-2.5 py-1 rounded-lg transition-all ${
+                            filterTab === tab.id ? 'bg-amber-500 text-white font-bold shadow-sm' : 'text-planner-textMuted hover:text-planner-textMain'
+                          }`}
+                        >
+                          {tab.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <form onSubmit={handleAddTodo} className="flex flex-col gap-2 mb-3">
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="新增待辦事項..."
+                        value={newTodoText}
+                        onChange={(e) => setNewTodoText(e.target.value)}
+                        className="flex-1 bg-planner-bg border border-planner-cardBorder rounded-xl px-3 py-2 text-xs text-planner-textMain focus:outline-none focus:border-amber-400"
+                      />
+                      <select
+                        value={newTodoCategory}
+                        onChange={(e) => setNewTodoCategory(e.target.value)}
+                        className="bg-planner-bg border border-planner-cardBorder rounded-xl px-2 py-2 text-xs text-planner-textMain focus:outline-none"
+                      >
+                        <option value="work">💼 工作</option>
+                        <option value="personal">🌿 個人</option>
+                      </select>
+                      <select
+                        value={newTodoPriority}
+                        onChange={(e) => setNewTodoPriority(e.target.value)}
+                        className="bg-planner-bg border border-planner-cardBorder rounded-xl px-2 py-2 text-xs text-planner-textMain focus:outline-none"
+                      >
+                        <option value="high">高</option>
+                        <option value="medium">中</option>
+                        <option value="low">低</option>
+                      </select>
+                      <button type="submit" className="p-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold shrink-0">
+                        <Icon name="plus" className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </form>
+
+                  <div className="flex-1 overflow-y-auto max-h-[220px] space-y-2 pr-1">
+                    {filteredTodos.map((todo) => (
+                      <div key={todo.id} className={`group flex items-center justify-between p-2.5 rounded-xl border transition-all ${todo.completed ? 'bg-planner-bg/60 border-planner-cardBorder/60 opacity-60' : 'bg-planner-card border-planner-cardBorder hover:border-amber-300'}`}>
+                        <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                          <button onClick={() => toggleTodo(todo.id)} className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${todo.completed ? 'bg-amber-500 border-amber-500 text-white' : 'border-planner-cardBorder hover:border-amber-500'}`}>
+                            {todo.completed && <Icon name="check" className="w-3 h-3 stroke-[3]" />}
+                          </button>
+                          <span className={`text-xs truncate ${todo.completed ? 'line-through text-planner-textMuted' : 'text-planner-textMain'}`}>
+                            {todo.title}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-2 shrink-0 ml-2">
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium border ${todo.category === 'work' ? 'bg-amber-50 text-amber-900 border-amber-200' : 'bg-emerald-50 text-emerald-900 border-emerald-200'}`}>
+                            {todo.category === 'work' ? '💼 工作' : '🌿 個人'}
+                          </span>
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium border ${todo.priority === 'high' ? 'bg-rose-50 text-rose-800 border-rose-200' : todo.priority === 'medium' ? 'bg-amber-100 text-amber-900 border-amber-300' : 'bg-emerald-50 text-emerald-800 border-emerald-200'}`}>
+                            {todo.priority === 'high' ? '高' : todo.priority === 'medium' ? '中' : '低'}
+                          </span>
+                          <button onClick={() => deleteTodo(todo.id)} className="opacity-0 group-hover:opacity-100 text-planner-textMuted hover:text-rose-600 p-1">
+                            <Icon name="trash" className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+              </div>
+
+              {/* COLUMN 2: 4 大高效商務模組 */}
+              <div className="flex flex-col gap-4">
+                
+                {/* 頁籤切換 Bar */}
+                <div className="bg-planner-card rounded-2xl border border-planner-cardBorder p-1.5 shadow-sm flex items-center justify-between gap-1 overflow-x-auto">
+                  {[
+                    { id: 'lineDraft', label: '💬 LINE 顧問擬稿', icon: 'messageSquare' },
+                    { id: 'lawCards', label: '📜 TFDA 法規專區', icon: 'scale' },
+                    { id: 'quotation', label: '💰 檢驗速查報價', icon: 'fileSpreadsheet' },
+                    { id: 'miniCrm', label: '🗂️ 案件 CRM', icon: 'kanban' }
+                  ].map(tab => (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveBizTab(tab.id)}
+                      className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex-1 justify-center ${
+                        activeBizTab === tab.id ? 'bg-amber-500 text-white shadow-sm' : 'text-planner-textMuted hover:bg-planner-bg'
+                      }`}
+                    >
+                      <Icon name={tab.icon} className="w-3.5 h-3.5" />
+                      <span>{tab.label}</span>
+                    </button>
+                  ))}
+                </div>
+
+                {/* 模組 1: LINE 顧問擬稿 */}
+                {activeBizTab === 'lineDraft' && (
+                  <div className="bg-planner-card rounded-2xl border border-planner-cardBorder p-4 sm:p-5 shadow-sm flex flex-col gap-3">
+                    <div className="flex items-center gap-2">
+                      <div className="p-2 rounded-xl bg-amber-100 text-amber-800 border border-amber-200">
+                        <Icon name="messageSquare" className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <h2 className="font-bold text-sm text-planner-textMain">檢測業務 AI 顧問</h2>
+                        <p className="text-[11px] text-planner-textMuted">食品/化粧品/藥品檢測專業法規與商務協調</p>
+                      </div>
+                    </div>
+
+                    <div className="text-xs bg-amber-50 p-2.5 rounded-xl border border-amber-200 text-amber-900 leading-relaxed">
+                      💡 <strong>顧問定位：</strong>懂法規與風險判斷、先回答問題再列依據、<strong>嚴禁「麻煩」與過度客套</strong>。
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] font-bold text-planner-textMuted mb-1 block">客戶對話 / 諮詢需求：</label>
+                      <textarea
+                        rows="4"
+                        value={clientInquiry}
+                        onChange={(e) => setClientInquiry(e.target.value)}
+                        placeholder="請貼上客戶問題（例如：客戶要求先出具檢驗報告初稿再補送農藥樣品...）"
+                        className="w-full bg-planner-bg border border-planner-cardBorder rounded-xl p-3 text-xs text-planner-textMain placeholder-planner-textMuted focus:outline-none focus:border-amber-400 resize-none leading-relaxed"
+                      />
+                    </div>
+
+                    <button
+                      onClick={handleGenerateLineReply}
+                      disabled={isDrafting}
+                      className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs shadow-sm transition-all active:scale-95 disabled:opacity-50"
+                    >
+                      <Icon name="sparkles" className={`w-4 h-4 ${isDrafting ? 'animate-spin' : ''}`} />
+                      <span>{isDrafting ? '正在進行風險分析與擬稿...' : '✨ 生成專業顧問回覆草稿'}</span>
+                    </button>
+
+                    {generatedDraft && (
+                      <div className="p-3.5 rounded-xl bg-planner-bg border border-amber-300 relative space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[11px] font-bold text-amber-900">📱 專業顧問分析與回覆</span>
+                          <button
+                            onClick={() => copyToClipboard(generatedDraft, () => showToast('已複製顧問草稿！', 'success'))}
+                            className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-500 text-white text-xs font-bold shadow-sm"
+                          >
+                            <Icon name="copy" className="w-3.5 h-3.5" />
+                            <span>複製整段內容</span>
+                          </button>
+                        </div>
+                        <div className="text-xs text-planner-textMain whitespace-pre-wrap leading-relaxed font-sans bg-white p-3 rounded-lg border border-planner-cardBorder">
+                          {generatedDraft}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* 模組 2: 精簡 TFDA 法規專區 */}
+                {activeBizTab === 'lawCards' && (
+                  <div className="bg-planner-card rounded-2xl border border-planner-cardBorder p-4 sm:p-5 shadow-sm flex flex-col gap-4">
+                    <div className="flex items-center gap-2">
+                      <div className="p-2 rounded-xl bg-amber-100 text-amber-800 border border-amber-200">
+                        <Icon name="scale" className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <h2 className="font-bold text-sm text-planner-textMain">TFDA 衛福部檢驗法規庫</h2>
+                        <p className="text-[11px] text-planner-textMuted">官方資料庫快捷入口</p>
+                      </div>
+                    </div>
+
+                    <div className="p-4 rounded-xl bg-planner-bg border border-planner-cardBorder flex items-center justify-between">
+                      <div>
+                        <h3 className="font-bold text-xs text-amber-900">TFDA 食品衛生法規整合專區</h3>
+                        <p className="text-[11px] text-planner-textMuted mt-0.5">衛福部食藥署最新食品安全衛生管理法與子法公告</p>
+                      </div>
+                      <a
+                        href="https://consumer.fda.gov.tw/Pages/List.aspx?nodeID=6"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold shadow-sm transition-all shrink-0"
+                      >
+                        <Icon name="externalLink" className="w-3.5 h-3.5" />
+                        <span>前往官方整合專區</span>
+                      </a>
+                    </div>
+                  </div>
+                )}
+
+                {/* 模組 3: 檢驗報價與樣品速查器 */}
+                {activeBizTab === 'quotation' && (
+                  <div className="bg-planner-card rounded-2xl border border-planner-cardBorder p-4 sm:p-5 shadow-sm flex flex-col gap-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="p-2 rounded-xl bg-emerald-100 text-emerald-800 border border-emerald-200">
+                          <Icon name="fileSpreadsheet" className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <h2 className="font-bold text-sm text-planner-textMain">檢驗報價與樣品速查器</h2>
+                          <p className="text-[11px] text-planner-textMuted">填寫或搜尋測項即可自動試算</p>
+                        </div>
+                      </div>
+
+                      <a
+                        href="https://docs.google.com/spreadsheets/d/1gcQ-cfIc0dwC0p4_9KVSZygwfF_KJfHV/edit?gid=613244146#gid=613244146"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-bold hover:bg-emerald-100 transition-all"
+                      >
+                        <Icon name="externalLink" className="w-3.5 h-3.5" />
+                        <span>開啟完整試算表</span>
+                      </a>
+                    </div>
+
+                    {/* 5 個輸入與對應欄位 */}
+                    <div className="space-y-2">
+                      <span className="text-[11px] font-bold text-planner-textMuted">請輸入/調整測項與試算資訊 (最多 5 組)：</span>
+                      {querySlots.map((slot, index) => (
+                        <div key={slot.id} className="p-2.5 rounded-xl bg-planner-bg border border-planner-cardBorder text-xs space-y-1.5">
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono font-bold text-amber-800 shrink-0">#{index + 1}</span>
+                            <input
+                              type="text"
+                              value={slot.name}
+                              onChange={(e) => handleSlotChange(index, 'name', e.target.value)}
+                              placeholder={`輸入測項名稱 ${index + 1}...`}
+                              className="flex-1 bg-white border border-planner-cardBorder rounded-lg px-2.5 py-1 font-medium focus:outline-none focus:border-amber-400"
+                            />
+                          </div>
+                          <div className="grid grid-cols-3 gap-1.5 text-[11px]">
+                            <div>
+                              <span className="text-planner-textMuted block text-[10px]">未稅單價(NT$)</span>
+                              <input
+                                type="number"
+                                value={slot.priceExTax || ''}
+                                onChange={(e) => handleSlotChange(index, 'priceExTax', Number(e.target.value))}
+                                placeholder="0"
+                                className="w-full bg-white border border-planner-cardBorder rounded px-1.5 py-0.5 font-mono"
+                              />
+                            </div>
+                            <div>
+                              <span className="text-planner-textMuted block text-[10px]">工作天數</span>
+                              <input
+                                type="number"
+                                value={slot.leadTimeDays || ''}
+                                onChange={(e) => handleSlotChange(index, 'leadTimeDays', Number(e.target.value))}
+                                placeholder="0"
+                                className="w-full bg-white border border-planner-cardBorder rounded px-1.5 py-0.5 font-mono"
+                              />
+                            </div>
+                            <div>
+                              <span className="text-planner-textMuted block text-[10px]">需求樣品量</span>
+                              <input
+                                type="text"
+                                value={slot.sampleQtyText}
+                                onChange={(e) => handleSlotChange(index, 'sampleQtyText', e.target.value)}
+                                placeholder="如: 100g"
+                                className="w-full bg-white border border-planner-cardBorder rounded px-1.5 py-0.5"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* 加總計算結果 */}
+                    <div className="p-3 bg-planner-bg rounded-xl border border-amber-300 space-y-2 mt-1">
+                      <div className="grid grid-cols-2 gap-2 text-xs bg-white p-2.5 rounded-lg border border-planner-cardBorder">
+                        <div>
+                          <span className="text-[10px] text-planner-textMuted block">未稅金額小計</span>
+                          <span className="font-bold text-amber-900 text-sm">NT$ {dynamicQuotationSummary.subtotalExTax.toLocaleString()}</span>
+                        </div>
+                        <div>
+                          <span className="text-[10px] text-planner-textMuted block">含稅金額總計 (5%)</span>
+                          <span className="font-bold text-planner-textMain text-sm">NT$ {dynamicQuotationSummary.totalIncTax.toLocaleString()}</span>
+                        </div>
+                        <div className="col-span-2 border-t border-slate-100 pt-1 flex justify-between">
+                          <span className="text-[10px] text-planner-textMuted">專案最大工作天數：</span>
+                          <span className="font-bold text-amber-800">{dynamicQuotationSummary.maxLeadTime} 個工作天</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* 模組 4: CRM 看板 */}
+                {activeBizTab === 'miniCrm' && (
+                  <div className="bg-planner-card rounded-2xl border border-planner-cardBorder p-4 sm:p-5 shadow-sm flex flex-col gap-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="p-2 rounded-xl bg-amber-100 text-amber-800 border border-amber-200">
+                          <Icon name="kanban" className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <h2 className="font-bold text-sm text-planner-textMain">檢驗案件 CRM 看板</h2>
+                          <p className="text-[11px] text-planner-textMuted">專屬 4 大階段與 Safe-to-follow-up</p>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => setShowAddClientModal(true)}
+                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs shadow-sm"
+                      >
+                        <Icon name="plus" className="w-3.5 h-3.5" />
+                        <span>新增案件</span>
+                      </button>
+                    </div>
+
+                    <div className="space-y-2.5 max-h-[380px] overflow-y-auto pr-1">
+                      {crmCases.map(c => {
+                        const isTodayFollow = c.followDate === new Date().toISOString().split('T')[0];
+                        return (
+                          <div key={c.id} className="p-3 rounded-xl bg-planner-bg border border-planner-cardBorder flex flex-col gap-2">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-bold text-xs text-planner-textMain">{c.clientName}</span>
+                                <span className="text-[10px] text-planner-textMuted">({c.company})</span>
+                              </div>
+                              
+                              <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold border ${
+                                c.status === 'pending_sample' ? 'bg-rose-100 text-rose-900 border-rose-300' :
+                                c.status === 'testing_in_lab' ? 'bg-amber-100 text-amber-900 border-amber-300' :
+                                c.status === 'reviewing_report' ? 'bg-sky-100 text-sky-900 border-sky-300' :
+                                'bg-emerald-100 text-emerald-900 border-emerald-300'
+                              }`}>
+                                {c.status === 'pending_sample' ? '📦 待補樣/補件' :
+                                 c.status === 'testing_in_lab' ? '🔬 實驗室檢測中' :
+                                 c.status === 'reviewing_report' ? '📄 報告核對/補正' : '🎉 已結案'}
+                              </span>
+                            </div>
+
+                            <p className="text-[11px] text-planner-textMain bg-white p-2 rounded-lg border border-planner-cardBorder leading-relaxed">
+                              {c.notes}
+                            </p>
+
+                            <div className="flex items-center justify-between text-[10px] text-planner-textMuted pt-1 border-t border-planner-cardBorder">
+                              <span className="flex items-center gap-1">
+                                <span>Safe-to-follow-up:</span>
+                                <strong className={`font-mono ${isTodayFollow ? 'text-rose-600 font-extrabold' : 'text-amber-800'}`}>{c.followDate}</strong>
+                              </span>
+
+                              <div className="flex items-center gap-2">
+                                {c.status !== 'closed' ? (
+                                  <button
+                                    onClick={() => moveCaseStatus(c.id,
+                                      c.status === 'pending_sample' ? 'testing_in_lab' :
+                                      c.status === 'testing_in_lab' ? 'reviewing_report' : 'closed'
+                                    )}
+                                    className="text-amber-800 hover:underline font-bold px-1"
+                                  >
+                                    推進下一階段 →
+                                  </button>
+                                ) : (
+                                  <button
+                                    onClick={() => deleteClosedCase(c.id)}
+                                    className="text-rose-600 hover:underline font-bold px-1 flex items-center gap-0.5"
+                                  >
+                                    <Icon name="trash" className="w-3 h-3" />
+                                    <span>刪除結案</span>
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+              </div>
+
+              {/* COLUMN 3: Quick Notes (Obsidian) */}
+              <div className="flex flex-col gap-5">
+                
+                <div className="bg-planner-card rounded-2xl border border-planner-cardBorder p-4 sm:p-5 shadow-sm flex-1 flex flex-col min-h-[460px]">
+                  <div className="flex items-center justify-between gap-2 mb-3">
+                    <div className="flex items-center gap-2">
+                      <div className="p-2 rounded-xl bg-amber-100 text-amber-800 border border-amber-200">
+                        <Icon name="fileText" className="w-4 h-4" />
+                      </div>
+                      <h2 className="font-bold text-sm text-planner-textMain">隨手筆記 (Obsidian)</h2>
+                    </div>
+
+                    <div className="flex items-center gap-1.5">
+                      <button onClick={exportMarkdownFile} className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 text-xs font-semibold">
+                        <Icon name="download" className="w-3.5 h-3.5" />
+                        <span className="hidden sm:inline">匯出 .md</span>
+                      </button>
+                      <button onClick={handleCreateNewNote} className="p-1.5 rounded-xl bg-planner-bg hover:bg-amber-100 text-planner-textMain border border-planner-cardBorder text-xs">
+                        <Icon name="plus" className="w-4 h-4 text-amber-700" />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 mb-2">
+                    <input
+                      type="text"
+                      value={activeNote?.title || ''}
+                      onChange={(e) => updateActiveNoteTitle(e.target.value)}
+                      placeholder="筆記標題..."
+                      className="flex-1 font-bold text-xs bg-planner-bg border border-planner-cardBorder rounded-lg px-2.5 py-1.5 text-planner-textMain focus:outline-none"
+                    />
+                    <div className="flex items-center bg-planner-bg p-0.5 rounded-lg border border-planner-cardBorder text-[11px]">
+                      <button onClick={() => setNoteMode('edit')} className={`px-2 py-0.5 rounded ${noteMode === 'edit' ? 'bg-amber-500 text-white font-bold' : 'text-planner-textMuted'}`}>編輯</button>
+                      <button onClick={() => setNoteMode('preview')} className={`px-2 py-0.5 rounded ${noteMode === 'preview' ? 'bg-amber-500 text-white font-bold' : 'text-planner-textMuted'}`}>預覽</button>
+                      <button onClick={() => setNoteMode('split')} className={`hidden sm:block px-2 py-0.5 rounded ${noteMode === 'split' ? 'bg-amber-500 text-white font-bold' : 'text-planner-textMuted'}`}>雙欄</button>
+                    </div>
+                  </div>
+
+                  <div className="flex-1 min-h-[260px] overflow-hidden">
+                    {noteMode === 'edit' && (
+                      <textarea value={activeNote?.content || ''} onChange={(e) => updateActiveNoteContent(e.target.value)} placeholder="以 Markdown 撰寫思考..." className="w-full h-full p-3 bg-planner-bg/60 border border-planner-cardBorder rounded-xl font-mono text-xs text-planner-textMain focus:outline-none resize-none leading-relaxed" />
+                    )}
+                    {noteMode === 'preview' && (
+                      <div className="w-full h-full p-3 bg-planner-bg/30 border border-planner-cardBorder rounded-xl text-xs text-planner-textMain overflow-y-auto leading-relaxed" dangerouslySetInnerHTML={{ __html: marked.parse(activeNote?.content || '') }} />
+                    )}
+                    {noteMode === 'split' && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 h-full">
+                        <textarea value={activeNote?.content || ''} onChange={(e) => updateActiveNoteContent(e.target.value)} className="w-full h-full p-2.5 bg-planner-bg/60 border border-planner-cardBorder rounded-xl font-mono text-xs text-planner-textMain focus:outline-none resize-none leading-relaxed" />
+                        <div className="w-full h-full p-2.5 bg-planner-bg/30 border border-planner-cardBorder rounded-xl text-xs text-planner-textMain overflow-y-auto leading-relaxed" dangerouslySetInnerHTML={{ __html: marked.parse(activeNote?.content || '') }} />
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="mt-3 pt-2 border-t border-planner-cardBorder flex items-center gap-1.5 overflow-x-auto pb-1">
+                    <span className="text-[10px] text-planner-textMuted shrink-0">歷史筆記:</span>
+                    {notes.map(n => (
+                      <div key={n.id} onClick={() => setActiveNoteId(n.id)} className={`cursor-pointer px-2.5 py-1 rounded-lg text-[11px] truncate max-w-[130px] flex items-center gap-1 shrink-0 ${n.id === activeNoteId ? 'bg-amber-100 text-amber-900 border border-amber-300 font-bold' : 'bg-planner-bg text-planner-textMuted hover:text-planner-textMain'}`}>
+                        <span className="truncate">{n.title || '未命名'}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+              </div>
+
+            </div>
+          </main>
+
+          {/* Modal: API Key */}
+          {isSettingsOpen && (
+            <div className="fixed inset-0 z-50 bg-stone-900/40 backdrop-blur-sm flex items-center justify-center p-4">
+              <div className="bg-planner-card border border-planner-cardBorder rounded-2xl max-w-md w-full p-5 shadow-xl">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <div className="p-2 rounded-xl bg-amber-100 text-amber-800 border border-amber-200">
+                      <Icon name="settings" className="w-5 h-5" />
+                    </div>
+                    <h3 className="font-bold text-sm text-planner-textMain">Gemini API Key 設定</h3>
+                  </div>
+                  <button onClick={() => setIsSettingsOpen(false)} className="text-planner-textMuted text-lg font-bold">×</button>
+                </div>
+
+                <div className="space-y-3 text-xs text-planner-textMuted">
+                  <p>請輸入您的 <strong className="text-amber-800">Gemini API Key</strong>，系統將調用 <code className="bg-amber-100 text-amber-900 px-1.5 py-0.5 rounded font-mono">gemini-2.5-flash</code> 進行語音真實轉譯與檢測業務顧問擬稿。</p>
+                  <div>
+                    <label className="text-[11px] font-bold block mb-1">API Key：</label>
+                    <input
+                      type="password"
+                      defaultValue={apiKey}
+                      id="geminiKeyInput"
+                      placeholder="AIzaSy..."
+                      className="w-full bg-planner-bg border border-planner-cardBorder rounded-xl px-3 py-2 text-planner-textMain focus:outline-none focus:border-amber-400 font-mono"
+                    />
+                  </div>
+                </div>
+
+                <div className="mt-5 flex items-center justify-end gap-2">
+                  <button onClick={() => setIsSettingsOpen(false)} className="px-4 py-2 rounded-xl bg-planner-bg text-planner-textMuted text-xs font-bold">取消</button>
+                  <button
+                    onClick={() => {
+                      const input = document.getElementById('geminiKeyInput');
+                      saveApiKey(input ? input.value.trim() : '');
+                    }}
+                    className="px-4 py-2 rounded-xl bg-amber-500 text-white text-xs font-bold shadow-sm"
+                  >
+                    儲存 Key
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Modal: Add CRM Case */}
+          {showAddClientModal && (
+            <div className="fixed inset-0 z-50 bg-stone-900/40 backdrop-blur-sm flex items-center justify-center p-4">
+              <form onSubmit={handleAddCase} className="bg-planner-card border border-planner-cardBorder rounded-2xl max-w-md w-full p-5 shadow-xl space-y-3">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="font-bold text-sm text-planner-textMain flex items-center gap-2">
+                    <Icon name="kanban" className="w-4 h-4 text-amber-700" />
+                    新增檢驗案件
+                  </h3>
+                  <button type="button" onClick={() => setShowAddClientModal(false)} className="text-planner-textMuted text-lg font-bold">×</button>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div>
+                    <label className="text-[11px] font-bold text-planner-textMuted block mb-1">客戶姓名 *</label>
+                    <input
+                      type="text"
+                      required
+                      value={newCase.clientName}
+                      onChange={(e) => setNewCase({ ...newCase, clientName: e.target.value })}
+                      placeholder="例：張董事長"
+                      className="w-full bg-planner-bg border border-planner-cardBorder rounded-xl px-3 py-2 text-planner-textMain focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-bold text-planner-textMuted block mb-1">公司名稱</label>
+                    <input
+                      type="text"
+                      value={newCase.company}
+                      onChange={(e) => setNewCase({ ...newCase, company: e.target.value })}
+                      placeholder="例：欣華生技"
+                      className="w-full bg-planner-bg border border-planner-cardBorder rounded-xl px-3 py-2 text-planner-textMain focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div>
+                    <label className="text-[11px] font-bold text-planner-textMuted block mb-1">檢驗階段</label>
+                    <select
+                      value={newCase.status}
+                      onChange={(e) => setNewCase({ ...newCase, status: e.target.value })}
+                      className="w-full bg-planner-bg border border-planner-cardBorder rounded-xl px-3 py-2 text-planner-textMain focus:outline-none"
+                    >
+                      <option value="pending_sample">📦 待補樣/補件</option>
+                      <option value="testing_in_lab">🔬 實驗室檢測中</option>
+                      <option value="reviewing_report">📄 報告核對/補正</option>
+                      <option value="closed">🎉 已結案</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-bold text-planner-textMuted block mb-1">Safe-to-follow-up 日期</label>
+                    <input
+                      type="date"
+                      value={newCase.followDate}
+                      onChange={(e) => setNewCase({ ...newCase, followDate: e.target.value })}
+                      className="w-full bg-planner-bg border border-planner-cardBorder rounded-xl px-3 py-2 text-planner-textMain focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="text-xs">
+                  <label className="text-[11px] font-bold text-planner-textMuted block mb-1">案件進度與備忘</label>
+                  <textarea
+                    rows="2"
+                    value={newCase.notes}
+                    onChange={(e) => setNewCase({ ...newCase, notes: e.target.value })}
+                    placeholder="例：農藥殘留 410 項待補樣 200g..."
+                    className="w-full bg-planner-bg border border-planner-cardBorder rounded-xl px-3 py-2 text-planner-textMain focus:outline-none resize-none"
+                  />
+                </div>
+
+                <div className="pt-2 flex items-center justify-end gap-2">
+                  <button type="button" onClick={() => setShowAddClientModal(false)} className="px-4 py-2 rounded-xl bg-planner-bg text-planner-textMuted text-xs font-bold">取消</button>
+                  <button type="submit" className="px-4 py-2 rounded-xl bg-amber-500 text-white text-xs font-bold shadow-sm">確認建立案件</button>
+                </div>
+              </form>
+            </div>
+          )}
+
+          {/* Footer */}
+          <footer className="mt-auto border-t border-planner-cardBorder py-4 px-6 text-center text-xs text-planner-textMuted flex flex-col sm:flex-row items-center justify-between gap-2">
+            <span>Julia 的思考藍圖 © 2026 ‧ 食品與化粧品檢驗專業工作台</span>
+            <span className="text-amber-800 font-bold">專業顧問 ‧ 同理視角 ‧ 嚴格依循官方價目與 TFDA 規範</span>
+          </footer>
+
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
